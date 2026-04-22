@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
-import { auth, provider } from '../firebase';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth } from '../firebase';
+import { getAuthErrorMessage, signInWithGoogle } from '../services/authService';
 
 const Navbar = () => {
   const [user, setUser] = useState(null);
@@ -21,10 +22,10 @@ const Navbar = () => {
     setAuthError('');
 
     try {
-      await signInWithPopup(auth, provider);
+      await signInWithGoogle();
     } catch (err) {
       console.error('Google sign-in failed:', err);
-      setAuthError('Google sign-in could not be completed.');
+      setAuthError(getAuthErrorMessage(err));
     }
   };
 
@@ -43,13 +44,10 @@ const Navbar = () => {
     setAuthError('');
 
     try {
-      provider.setCustomParameters({ prompt: 'select_account' });
-      await signInWithPopup(auth, provider);
+      await signInWithGoogle({ selectAccount: true });
     } catch (err) {
       console.error('Account switch failed:', err);
-      setAuthError('Could not switch accounts.');
-    } finally {
-      provider.setCustomParameters({});
+      setAuthError(getAuthErrorMessage(err));
     }
   };
 

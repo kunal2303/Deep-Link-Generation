@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { onAuthStateChanged, signInWithPopup } from 'firebase/auth';
-import { auth, provider } from '../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../firebase';
+import { getAuthErrorMessage, signInWithGoogle } from '../services/authService';
 import { fetchLinksForUser } from '../services/linkService';
 
 const Dashboard = () => {
@@ -50,10 +51,10 @@ const Dashboard = () => {
     setError('');
 
     try {
-      await signInWithPopup(auth, provider);
+      await signInWithGoogle();
     } catch (err) {
       console.error('Google sign-in failed:', err);
-      setError('Google sign-in could not be completed.');
+      setError(getAuthErrorMessage(err));
     }
   };
 

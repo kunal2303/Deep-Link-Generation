@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { onAuthStateChanged, signInWithPopup } from 'firebase/auth';
-import { auth, provider } from '../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../firebase';
 import { createLink } from '../services/linkService';
+import { getAuthErrorMessage, signInWithGoogle } from '../services/authService';
 
 const LinkGenerator = () => {
   const [user, setUser] = useState(null);
@@ -83,10 +84,10 @@ const LinkGenerator = () => {
     setError('');
 
     try {
-      await signInWithPopup(auth, provider);
+      await signInWithGoogle();
     } catch (err) {
       console.error("Google sign-in failed:", err);
-      setError("Google sign-in could not be completed.");
+      setError(getAuthErrorMessage(err));
     }
   };
 
