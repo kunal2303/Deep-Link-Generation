@@ -221,6 +221,17 @@ a {
   border-color: var(--success-color);
 }
 
+.danger-btn {
+  border: 1px solid rgba(248, 113, 113, 0.42);
+  background: rgba(248, 113, 113, 0.12);
+  color: #fecaca;
+}
+
+.danger-btn:hover:not(:disabled) {
+  background: rgba(248, 113, 113, 0.2);
+  transform: translateY(-1px);
+}
+
 .preview-link {
   color: var(--accent-primary);
   text-decoration: none;
@@ -603,6 +614,12 @@ a {
 
 .link-detail a:hover {
   text-decoration: underline;
+}
+
+.link-delete-btn {
+  width: 100%;
+  margin-top: 20px;
+  padding: 12px 14px;
 }
 
 .auth-required-panel,

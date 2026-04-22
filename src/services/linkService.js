@@ -1,5 +1,5 @@
 import { db } from "../firebase";
-import { collection, doc, setDoc, getDoc, getDocs, query, serverTimestamp, increment, updateDoc, where } from "firebase/firestore";
+import { collection, deleteDoc, doc, setDoc, getDoc, getDocs, query, serverTimestamp, increment, updateDoc, where } from "firebase/firestore";
 import { nanoid } from "nanoid";
 
 const LINKS_COLLECTION = "links";
@@ -49,6 +49,25 @@ export const fetchLinksForUser = async (userId) => {
       const bTime = b.createdAt?.toMillis?.() ?? 0;
       return bTime - aTime;
     });
+};
+
+export const deleteLinkForUser = async (slug, userId) => {
+  if (!slug || !userId) {
+    throw new Error("Authentication required");
+  }
+
+  const docRef = doc(db, LINKS_COLLECTION, slug);
+  const docSnap = await getDoc(docRef);
+
+  if (!docSnap.exists()) {
+    throw new Error("Link not found");
+  }
+
+  if (docSnap.data().userId !== userId) {
+    throw new Error("Permission denied");
+  }
+
+  await deleteDoc(docRef);
 };
 
 export const fetchLinkBySlug = async (slug) => {

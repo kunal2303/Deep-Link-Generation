@@ -23,3 +23,6 @@
 2:27:54 PM [vite] hmr update /src/components/Navbar.jsx
 2:28:00 PM [vite] hmr update /src/components/LinkGenerator.jsx
 2:28:06 PM [vite] hmr update /src/components/Dashboard.jsx
+2:34:12 PM [vite] hmr update /src/components/LinkGenerator.jsx, /src/components/Redirector.jsx, /src/components/Dashboard.jsx
+2:34:24 PM [vite] hmr update /src/components/Dashboard.jsx
+2:34:31 PM [vite] hmr update /src/index.css

@@ -3,13 +3,14 @@ import { Link } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebase';
 import { getAuthErrorMessage, signInWithGoogle } from '../services/authService';
-import { fetchLinksForUser } from '../services/linkService';
+import { deleteLinkForUser, fetchLinksForUser } from '../services/linkService';
 
 const Dashboard = () => {
   const [user, setUser] = useState(null);
   const [authReady, setAuthReady] = useState(false);
   const [links, setLinks] = useState([]);
   const [loadingLinks, setLoadingLinks] = useState(false);
+  const [deletingSlug, setDeletingSlug] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -55,6 +56,31 @@ const Dashboard = () => {
     } catch (err) {
       console.error('Google sign-in failed:', err);
       setError(getAuthErrorMessage(err));
+    }
+  };
+
+  const handleDeleteLink = async (slug, title) => {
+    if (!user || deletingSlug) {
+      return;
+    }
+
+    const confirmed = window.confirm(`Delete "${title || 'Untitled Link'}"? This shortlink will stop working.`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingSlug(slug);
+    setError('');
+
+    try {
+      await deleteLinkForUser(slug, user.uid);
+      setLinks((currentLinks) => currentLinks.filter((link) => link.slug !== slug));
+    } catch (err) {
+      console.error('Failed to delete link:', err);
+      setError('Could not delete that link. Please try again.');
+    } finally {
+      setDeletingSlug('');
     }
   };
 
@@ -135,6 +161,15 @@ const Dashboard = () => {
                   <span>Shortlink</span>
                   <a href={shortLink} target="_blank" rel="noopener noreferrer">{shortLink}</a>
                 </div>
+
+                <button
+                  type="button"
+                  className="btn danger-btn link-delete-btn"
+                  onClick={() => handleDeleteLink(link.slug, link.title)}
+                  disabled={deletingSlug === link.slug}
+                >
+                  {deletingSlug === link.slug ? 'Deleting...' : 'Delete Link'}
+                </button>
               </article>
             );
           })}
