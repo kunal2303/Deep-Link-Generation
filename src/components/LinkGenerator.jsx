@@ -2,10 +2,19 @@ import React, { useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebase';
 import { createLink } from '../services/linkService';
-import { getAuthErrorMessage, signInWithGoogle } from '../services/authService';
+import {
+  APP_SESSION_LOCKED_CHANGED_EVENT,
+  getAuthErrorMessage,
+  isAppSessionLocked,
+  saveAccountForQuickLogin,
+  signInWithGoogle,
+  unlockAppSession
+} from '../services/authService';
+import SavedAccountPrompt from './SavedAccountPrompt';
 
 const LinkGenerator = () => {
   const [user, setUser] = useState(null);
+  const [sessionLocked, setSessionLocked] = useState(() => isAppSessionLocked());
   const [authReady, setAuthReady] = useState(false);
   const [title, setTitle] = useState('');
   const [url, setUrl] = useState('');
@@ -17,12 +26,25 @@ const LinkGenerator = () => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        saveAccountForQuickLogin(currentUser);
+      }
+
       setUser(currentUser);
       setAuthReady(true);
     });
 
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    const updateLockedState = () => setSessionLocked(isAppSessionLocked());
+    window.addEventListener(APP_SESSION_LOCKED_CHANGED_EVENT, updateLockedState);
+
+    return () => window.removeEventListener(APP_SESSION_LOCKED_CHANGED_EVENT, updateLockedState);
+  }, []);
+
+  const activeUser = sessionLocked ? null : user;
 
   const isValidUrl = (string) => {
     try {
@@ -37,7 +59,7 @@ const LinkGenerator = () => {
     e.preventDefault();
     setError('');
 
-    if (!user) {
+    if (!activeUser) {
       setError("Please sign in with Google before generating a link.");
       return;
     }
@@ -58,7 +80,7 @@ const LinkGenerator = () => {
         targetUrl: url,
         customSlug,
         title,
-        userId: user.uid
+        userId: activeUser.uid
       });
       const newLink = `${window.location.origin}/${slug}`;
       setGeneratedLink(newLink);
@@ -80,11 +102,29 @@ const LinkGenerator = () => {
     }
   };
 
-  const handleSignIn = async () => {
+  const handleSignIn = async ({ restoreLocalSession = false } = {}) => {
     setError('');
+
+    if (restoreLocalSession) {
+      unlockAppSession();
+      return;
+    }
 
     try {
       await signInWithGoogle();
+      unlockAppSession();
+    } catch (err) {
+      console.error("Google sign-in failed:", err);
+      setError(getAuthErrorMessage(err));
+    }
+  };
+
+  const handleUseDifferentAccount = async () => {
+    setError('');
+
+    try {
+      await signInWithGoogle({ selectAccount: true });
+      unlockAppSession();
     } catch (err) {
       console.error("Google sign-in failed:", err);
       setError(getAuthErrorMessage(err));
@@ -103,12 +143,13 @@ const LinkGenerator = () => {
         <h1 className="title">Smart Link Generator</h1>
         <p className="subtitle">Bypass Instagram browser and open directly in the YouTube app.</p>
 
-        {!user && authReady && (
+        {!activeUser && authReady && (
           <div className="auth-callout">
             <p>Sign in to generate account-linked smart links and track them on your dashboard.</p>
-            <button type="button" className="btn primary-btn" onClick={handleSignIn}>
-              Sign in with Google
-            </button>
+            <SavedAccountPrompt
+              onContinue={handleSignIn}
+              onUseDifferentAccount={handleUseDifferentAccount}
+            />
           </div>
         )}
 
@@ -122,7 +163,7 @@ const LinkGenerator = () => {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="url-input"
-              disabled={!user || loading}
+              disabled={!activeUser || loading}
             />
             <input
               type="text"
@@ -130,7 +171,7 @@ const LinkGenerator = () => {
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               className="url-input"
-              disabled={!user || loading}
+              disabled={!activeUser || loading}
             />
             <input
               type="text"
@@ -138,10 +179,10 @@ const LinkGenerator = () => {
               value={customSlug}
               onChange={(e) => setCustomSlug(e.target.value)}
               className="url-input"
-              disabled={!user || loading}
+              disabled={!activeUser || loading}
             />
           </div>
-          <button type="submit" disabled={loading || !user || !authReady} className="btn primary-btn">
+          <button type="submit" disabled={loading || !activeUser || !authReady} className="btn primary-btn">
             {loading ? 'Generating...' : 'Generate Deep Link'}
           </button>
         </form>

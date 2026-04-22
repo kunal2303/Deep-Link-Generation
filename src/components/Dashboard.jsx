@@ -2,11 +2,20 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebase';
-import { getAuthErrorMessage, signInWithGoogle } from '../services/authService';
+import {
+  APP_SESSION_LOCKED_CHANGED_EVENT,
+  getAuthErrorMessage,
+  isAppSessionLocked,
+  saveAccountForQuickLogin,
+  signInWithGoogle,
+  unlockAppSession
+} from '../services/authService';
 import { deleteLinkForUser, fetchLinksForUser } from '../services/linkService';
+import SavedAccountPrompt from './SavedAccountPrompt';
 
 const Dashboard = () => {
   const [user, setUser] = useState(null);
+  const [sessionLocked, setSessionLocked] = useState(() => isAppSessionLocked());
   const [authReady, setAuthReady] = useState(false);
   const [links, setLinks] = useState([]);
   const [loadingLinks, setLoadingLinks] = useState(false);
@@ -15,6 +24,10 @@ const Dashboard = () => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        saveAccountForQuickLogin(currentUser);
+      }
+
       setUser(currentUser);
       setAuthReady(true);
     });
@@ -23,7 +36,16 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    if (!authReady || !user) {
+    const updateLockedState = () => setSessionLocked(isAppSessionLocked());
+    window.addEventListener(APP_SESSION_LOCKED_CHANGED_EVENT, updateLockedState);
+
+    return () => window.removeEventListener(APP_SESSION_LOCKED_CHANGED_EVENT, updateLockedState);
+  }, []);
+
+  const activeUser = sessionLocked ? null : user;
+
+  useEffect(() => {
+    if (!authReady || !activeUser) {
       setLinks([]);
       return;
     }
@@ -33,7 +55,7 @@ const Dashboard = () => {
       setError('');
 
       try {
-        const userLinks = await fetchLinksForUser(user.uid);
+        const userLinks = await fetchLinksForUser(activeUser.uid);
         setLinks(userLinks);
       } catch (err) {
         console.error('Failed to load dashboard links:', err);
@@ -44,15 +66,33 @@ const Dashboard = () => {
     };
 
     loadLinks();
-  }, [authReady, user]);
+  }, [authReady, activeUser]);
 
   const totalClicks = useMemo(() => links.reduce((sum, link) => sum + (link.clicks || 0), 0), [links]);
 
-  const handleSignIn = async () => {
+  const handleSignIn = async ({ restoreLocalSession = false } = {}) => {
     setError('');
+
+    if (restoreLocalSession) {
+      unlockAppSession();
+      return;
+    }
 
     try {
       await signInWithGoogle();
+      unlockAppSession();
+    } catch (err) {
+      console.error('Google sign-in failed:', err);
+      setError(getAuthErrorMessage(err));
+    }
+  };
+
+  const handleUseDifferentAccount = async () => {
+    setError('');
+
+    try {
+      await signInWithGoogle({ selectAccount: true });
+      unlockAppSession();
     } catch (err) {
       console.error('Google sign-in failed:', err);
       setError(getAuthErrorMessage(err));
@@ -60,7 +100,7 @@ const Dashboard = () => {
   };
 
   const handleDeleteLink = async (slug, title) => {
-    if (!user || deletingSlug) {
+    if (!activeUser || deletingSlug) {
       return;
     }
 
@@ -74,7 +114,7 @@ const Dashboard = () => {
     setError('');
 
     try {
-      await deleteLinkForUser(slug, user.uid);
+      await deleteLinkForUser(slug, activeUser.uid);
       setLinks((currentLinks) => currentLinks.filter((link) => link.slug !== slug));
     } catch (err) {
       console.error('Failed to delete link:', err);
@@ -95,16 +135,17 @@ const Dashboard = () => {
     );
   }
 
-  if (!user) {
+  if (!activeUser) {
     return (
       <div className="page-container dashboard-page">
         <section className="glass-panel auth-required-panel">
           <h1 className="title">Your Dashboard</h1>
           <p className="subtitle">Sign in to review the smart links connected to your account.</p>
           {error && <p className="form-error">{error}</p>}
-          <button type="button" className="btn primary-btn" onClick={handleSignIn}>
-            Sign in with Google
-          </button>
+          <SavedAccountPrompt
+            onContinue={handleSignIn}
+            onUseDifferentAccount={handleUseDifferentAccount}
+          />
         </section>
       </div>
     );
@@ -117,6 +158,9 @@ const Dashboard = () => {
           <p className="eyebrow">Dashboard</p>
           <h1>Your Smart Links</h1>
           <p>Review every link you created, where it points, and how many clicks it has received.</p>
+          <Link to="/" className="btn primary-btn dashboard-create-link">
+            Create Link
+          </Link>
         </div>
 
         <div className="stats-card">
