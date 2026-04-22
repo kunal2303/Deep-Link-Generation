@@ -292,6 +292,19 @@ a {
   border-radius: 8px;
 }
 
+.web-fallback-link {
+  display: block;
+  margin-top: 12px;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  text-decoration: none;
+}
+
+.web-fallback-link:hover {
+  color: var(--accent-primary);
+  text-decoration: underline;
+}
+
 .error-panel {
   max-width: 400px;
 }

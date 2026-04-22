@@ -342,6 +342,14 @@ const Redirector = () => {
     }, { once: true });
   };
 
+  const retryAppOpen = () => {
+    if (!target) {
+      return;
+    }
+
+    window.location.href = getDeepLinkUrl(target);
+  };
+
   if (error) {
     return (
       <div className="container center-all">
@@ -364,7 +372,12 @@ const Redirector = () => {
         {target && (
           <div className="fallback-action">
             <p className="fallback-text">Not redirecting?</p>
-            <a href={target} className="btn primary-btn fallback-btn">Continue to Website</a>
+            <button type="button" onClick={retryAppOpen} className="btn primary-btn fallback-btn">
+              Open App
+            </button>
+            <a href={target} className="web-fallback-link" target="_blank" rel="noopener noreferrer">
+              Continue in browser
+            </a>
           </div>
         )}
       </div>
