@@ -1,0 +1,22 @@
+
+> deep-link-website@0.0.0 dev
+> vite
+
+
+  VITE v5.4.21  ready in 285 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+11:33:57 AM [vite] hmr update /src/components/Redirector.jsx, /src/components/LinkGenerator.jsx
+1:27:22 PM [vite] hmr update /src/components/Redirector.jsx, /src/components/LinkGenerator.jsx
+1:27:22 PM [vite] ✨ new dependencies optimized: firebase/auth
+1:27:22 PM [vite] ✨ optimized dependencies changed. reloading
+1:45:34 PM [vite] hmr update /src/components/LinkGenerator.jsx
+1:46:23 PM [vite] hmr update /src/components/Redirector.jsx
+2:00:57 PM [vite] hmr update /src/components/LinkGenerator.jsx, /src/components/Redirector.jsx
+2:02:16 PM [vite] hmr update /src/components/LinkGenerator.jsx
+2:02:22 PM [vite] hmr update /src/App.jsx
+2:03:41 PM [vite] hmr update /src/index.css
+2:07:37 PM [vite] hmr update /src/components/LinkGenerator.jsx, /src/components/Redirector.jsx, /src/components/Dashboard.jsx, /src/components/Navbar.jsx
+2:13:05 PM [vite] hmr update /src/components/Navbar.jsx
+2:13:11 PM [vite] hmr update /src/index.css
